@@ -1,0 +1,401 @@
+import React, { useState, useEffect } from 'react';
+import { PROFILES } from './data/PROFILES';
+import { OUTPUT_META } from './data/OUTPUT_META';
+import { USER } from './data/USER';
+import { DocxBuilder } from './builders/DocxBuilder';
+import { SystemPromptBuilder } from './builders/SystemPromptBuilder';
+
+function detectLanguage(text: string): 'sv' | 'en' {
+  const words = text.toLowerCase().match(/\b\w+\b/g) ?? [];
+  if (words.length === 0) return 'sv';
+  const svWords = new Set(['och', 'att', 'för', 'med', 'av', 'en', 'ett', 'är', 'som', 'på', 'vi', 'du', 'det', 'den', 'sin', 'sig', 'till', 'om', 'men', 'har', 'kan', 'ska', 'eller', 'inte', 'också', 'vill', 'inom', 'samt', 'vara', 'våra', 'vårt', 'hos']);
+  const svCount = words.filter(w => svWords.has(w)).length;
+  return svCount / words.length > 0.04 ? 'sv' : 'en';
+}
+
+// Example types, adjust as needed for your actual data
+
+interface CvData {
+  jobTitle: string;
+  about: string;
+  experiences: any[];
+  includeMind: boolean;
+  skills: string;
+}
+
+
+interface Result {
+  cv?: CvData;
+  [key: string]: any;
+}
+
+
+  const [profile, setProfile] = useState<string>('service');
+  const [jobListing, setJobListing] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loadingKeywords, setLoadingKeywords] = useState<boolean>(false);
+  const [loadingDownload, setLoadingDownload] = useState<boolean>(false);
+  const [result, setResult] = useState<Result | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<{ [key: string]: boolean }>({});
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [selectedKeywords, setSelectedKw] = useState<Set<string>>(new Set());
+  const [newKeyword, setNewKw] = useState<string>('');
+  const [docxReady, setDocxReady] = useState<boolean>(false);
+  const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(
+    new Set(PROFILES['service'].defaultOutputs)
+  );
+
+  useEffect(() => {
+    if ((window as any).docx) {
+      setDocxReady(true);
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/docx@8.5.0/build/index.js';
+    s.onload = () => setDocxReady(true);
+    document.head.appendChild(s);
+  }, []);
+
+
+  const switchProfile = (key: keyof typeof PROFILES) => {
+    setProfile(key);
+    setSelectedOutputs(new Set(PROFILES[key].defaultOutputs));
+    setResult(null);
+    setError(null);
+  };
+
+
+  const toggleOutput = (key: string) => {
+    setSelectedOutputs((prev: Set<string>) => {
+      const n = new Set(prev);
+      n.has(key) ? n.delete(key) : n.add(key);
+      return n;
+    });
+  };
+
+
+  const extractKeywords = async () => {
+    if (!jobListing.trim()) return;
+    setLoadingKeywords(true);
+    try {
+      const lang = detectLanguage(jobListing);
+      const kwSystemPrompt = lang === 'en'
+        ? `Extract the most important keywords and skills from a job listing. Return ONLY a JSON array of 8–14 short phrases (max 4 words each), in English. No markdown characters.`
+        : `Extrahera de viktigaste nyckelorden och kompetenserna från en jobbannons. Returnera ENDAST en JSON-array med 8–14 korta fraser (max 4 ord), på svenska. Inga markdown-tecken.`;
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 300,
+          system: kwSystemPrompt,
+          messages: [{ role: 'user', content: jobListing }]
+        })
+      });
+      const data = await res.json();
+      const parsed = JSON.parse(
+        data.content
+          ?.map((b: any) => b.text || '')
+          .join('')
+          .trim()
+          .replace(/```json|```/g, '')
+          .trim()
+      );
+      setKeywords(parsed);
+      setSelectedKw(new Set(parsed));
+    } catch {
+    } finally {
+      setLoadingKeywords(false);
+    }
+  };
+
+
+  const toggleKeyword = (kw: string) =>
+    setSelectedKw((prev: Set<string>) => {
+      const n = new Set(prev);
+      n.has(kw) ? n.delete(kw) : n.add(kw);
+      return n;
+    });
+
+  const addKeyword = () => {
+    const kw = newKeyword.trim();
+    if (!kw) return;
+    if (!keywords.includes(kw)) setKeywords((prev: string[]) => [...prev, kw]);
+    setSelectedKw((prev: Set<string>) => new Set([...prev, kw]));
+    setNewKw('');
+  };
+
+
+  const generate = async () => {
+    if (!jobListing.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const lang = detectLanguage(jobListing);
+      const system = new SystemPromptBuilder(profile, selectedKeywords, selectedOutputs, lang).build();
+      const userPrefix = lang === 'en' ? 'Job listing:' : 'Jobbannonsen:';
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1800,
+          system,
+          messages: [
+            { role: 'user', content: `${userPrefix}\n\n${jobListing}` }
+          ]
+        })
+      });
+      const data = await res.json();
+      const text = data.content
+        ?.map((b: any) => b.text || '')
+        .join('')
+        .trim();
+      setResult(JSON.parse(text.replace(/```json|```/g, '').trim()));
+    } catch {
+      setError('Något gick fel. Försök igen.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const downloadCv = async () => {
+    if (!result?.cv || !docxReady) return;
+    setLoadingDownload(true);
+    try {
+      const blob = await new DocxBuilder(result.cv).build();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${USER.name.replace(/\s+/g, '.')}_CV.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Kunde inte generera CV-filen. Försök igen.');
+    } finally {
+      setLoadingDownload(false);
+    }
+  };
+
+
+  const copy = async (key: string, text: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopied((p: { [key: string]: boolean }) => ({ ...p, [key]: true }));
+    setTimeout(() => setCopied((p: { [key: string]: boolean }) => ({ ...p, [key]: false })), 2000);
+  };
+
+
+  const reset = () => {
+    setJobListing('');
+    setResult(null);
+    setError(null);
+    setKeywords([]);
+    setSelectedKw(new Set());
+  };
+
+
+  const textOutputKeys = ['about', 'email', 'linkedin', 'coverLetter'].filter(
+    (k) => selectedOutputs.has(k)
+  );
+
+  return (
+    <>
+      <style>{S}</style>
+      <div className='app'>
+        <div className='header'>
+          <div className='hi'>LS</div>
+          <div>
+            <div className='hn'>Ansökningsagent</div>
+            <div className='hs'>{USER.name}</div>
+          </div>
+        </div>
+        <div className='main'>
+          <div className='card'>
+            <div className='lbl'>Profil</div>
+            <div className='profiles'>
+              {Object.entries(PROFILES).map(([key, p]) => (
+                <button
+                  key={key}
+                  className={`pb${profile === key ? ' active' : ''}`}
+                  onClick={() => switchProfile(key)}
+                >
+                  <span style={{ fontSize: 15 }}>{p.emoji}</span>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className='card'>
+            <div className='lbl'>Jobbannons</div>
+            <textarea
+              value={jobListing}
+              onChange={(e) => setJobListing(e.target.value)}
+              placeholder='Klistra in hela jobbannonsen här...'
+            />
+
+            {jobListing.trim() && (
+              <>
+                <div className='divider' />
+                <div>
+                  <div className='kw-top'>
+                    <div className='lbl' style={{ margin: 0 }}>
+                      Nyckelord
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '0.5rem',
+                        alignItems: 'center'
+                      }}
+                    >
+                      {keywords.length > 0 && (
+                        <span className='kw-count'>
+                          <b>{selectedKeywords.size}</b> av {keywords.length}
+                        </span>
+                      )}
+                      <button
+                        className='btn btn-g'
+                        onClick={extractKeywords}
+                        disabled={loadingKeywords}
+                      >
+                        {loadingKeywords ? <div className='spinner-sm' /> : null}
+                        {loadingKeywords
+                          ? 'Hämtar...'
+                          : keywords.length > 0
+                            ? 'Uppdatera'
+                            : 'Hämta nyckelord'}
+                      </button>
+                    </div>
+                  </div>
+                  {keywords.length > 0 && (
+                    <div className='tags'>
+                      {keywords.map((kw) => (
+                        <button
+                          key={kw}
+                          className={`tag${selectedKeywords.has(kw) ? ' on' : ''}`}
+                          onClick={() => toggleKeyword(kw)}
+                        >
+                          {selectedKeywords.has(kw) && (
+                            <span style={{ fontSize: 10 }}>✓ </span>
+                          )}
+                          {kw}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className='add-row'>
+                    <input
+                      className='add-input'
+                      value={newKeyword}
+                      onChange={(e) => setNewKw(e.target.value)}
+                      placeholder='Lägg till eget nyckelord...'
+                      onKeyDown={(e) => e.key === 'Enter' && addKeyword()}
+                    />
+                    <button
+                      className='add-btn'
+                      onClick={addKeyword}
+                      disabled={!newKeyword.trim()}
+                    >
+                      Lägg till
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className='divider' />
+            <div className='lbl'>Vad ska genereras</div>
+            <div className='outputs-grid'>
+              {Object.entries(OUTPUT_META).map(([key, meta]) => (
+                <button
+                  key={key}
+                  className={`out-toggle${selectedOutputs.has(key) ? ' on' : ''}`}
+                  onClick={() => toggleOutput(key)}
+                >
+                  {selectedOutputs.has(key) ? '✓ ' : '+ '}
+                  {meta.label}
+                </button>
+              ))}
+            </div>
+
+            <div className='btn-row'>
+              <button
+                className='btn btn-p'
+                onClick={generate}
+                disabled={loading || !jobListing.trim()}
+              >
+                {loading ? <div className='spinner' /> : null}
+                {loading ? 'Genererar...' : 'Generera ↗'}
+              </button>
+              {(jobListing || result) && !loading && (
+                <button className='btn btn-g' onClick={reset}>
+                  Rensa
+                </button>
+              )}
+            </div>
+          </div>
+
+          {error && <div className='err'>{error}</div>}
+
+          {result && (
+            <div className='card results'>
+              {selectedOutputs.has('cv') && result.cv && (
+                <div className='cv-bar'>
+                  <div>
+                    <div className='cv-info'>
+                      CV – {result.cv.jobTitle || USER.name}
+                    </div>
+                    <div className='cv-sub'>
+                      Anpassat för denna tjänst · .docx
+                    </div>
+                  </div>
+                  <button
+                    className='btn-dl'
+                    onClick={downloadCv}
+                    disabled={loadingDownload || !docxReady}
+                  >
+                    {loadingDownload ? <div className='spinner-dl' /> : '⬇'}
+                    {loadingDownload ? 'Skapar...' : 'Ladda ner'}
+                  </button>
+                </div>
+              )}
+              {textOutputKeys.map((key) =>
+                result[key] ? (
+                  <div className='rb' key={key}>
+                    <div className='rh'>
+                      <span className='rt'>{OUTPUT_META[key].label}</span>
+                      <button
+                        className='btn-c'
+                        onClick={() => copy(key, result[key])}
+                      >
+                        {copied[key] ? (
+                          <span className='cl'>Kopierat ✓</span>
+                        ) : (
+                          'Kopiera'
+                        )}
+                      </button>
+                    </div>
+                    <div className='rv'>{result[key]}</div>
+                  </div>
+                ) : null
+              )}
+            </div>
+          )}
+
+          {!result && !loading && !error && (
+            <div className='empty'>
+              Välj profil, klistra in annons och tryck på generera
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+ 

@@ -1,0 +1,12 @@
+.cle-ta {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  resize: vertical;
+  outline: none;
+  padding: 0;
+}
