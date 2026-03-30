@@ -1,16 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import './styles/app.css';
-import { PROFILES } from './data/PROFILES';
-import { OUTPUT_META } from './data/OUTPUT_META';
-import { USER } from './data/USER';
+import React, { useEffect, useState } from 'react';
+
 import { DocxBuilder } from './builders/DocxBuilder';
 import { SystemPromptBuilder } from './builders/SystemPromptBuilder';
+import { OUTPUT_META } from './data/OUTPUT_META';
+import { PROFILES } from './data/PROFILES';
+import { USER } from './data/USER';
+
+import './styles/app.css';
 
 function detectLanguage(text: string): 'sv' | 'en' {
   const words = text.toLowerCase().match(/\b\w+\b/g) ?? [];
   if (words.length === 0) return 'sv';
-  const svWords = new Set(['och', 'att', 'för', 'med', 'av', 'en', 'ett', 'är', 'som', 'på', 'vi', 'du', 'det', 'den', 'sin', 'sig', 'till', 'om', 'men', 'har', 'kan', 'ska', 'eller', 'inte', 'också', 'vill', 'inom', 'samt', 'vara', 'våra', 'vårt', 'hos']);
-  const svCount = words.filter(w => svWords.has(w)).length;
+  const svWords = new Set([
+    'och',
+    'att',
+    'för',
+    'med',
+    'av',
+    'en',
+    'ett',
+    'är',
+    'som',
+    'på',
+    'vi',
+    'du',
+    'det',
+    'den',
+    'sin',
+    'sig',
+    'till',
+    'om',
+    'men',
+    'har',
+    'kan',
+    'ska',
+    'eller',
+    'inte',
+    'också',
+    'vill',
+    'inom',
+    'samt',
+    'vara',
+    'våra',
+    'vårt',
+    'hos',
+  ]);
+  const svCount = words.filter((w) => svWords.has(w)).length;
   return svCount / words.length > 0.04 ? 'sv' : 'en';
 }
 
@@ -24,16 +59,15 @@ interface CvData {
   skills: string;
 }
 
-
 interface Result {
   cv?: CvData;
   [key: string]: any;
 }
 
-
 export default function App() {
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('claude_api_key') ?? '');
 
+  // Save the API key to state and localStorage for persistence
   const saveApiKey = (key: string) => {
     setApiKey(key);
     localStorage.setItem('claude_api_key', key);
@@ -52,7 +86,7 @@ export default function App() {
   const [newKeyword, setNewKw] = useState<string>('');
   const [docxReady, setDocxReady] = useState<boolean>(false);
   const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(
-    new Set(PROFILES['service'].defaultOutputs)
+    new Set(PROFILES['service']?.defaultOutputs ?? []),
   );
 
   useEffect(() => {
@@ -66,15 +100,15 @@ export default function App() {
     document.head.appendChild(s);
   }, []);
 
-
-  const switchProfile = (key: keyof typeof PROFILES) => {
+  // Switch to a different profile and reset related state
+  const switchProfile = (key: string) => {
     setProfile(key);
-    setSelectedOutputs(new Set(PROFILES[key].defaultOutputs));
+    setSelectedOutputs(new Set(PROFILES[key]?.defaultOutputs ?? []));
     setResult(null);
     setError(null);
   };
 
-
+  // Toggle the inclusion of a specific output in the generated results
   const toggleOutput = (key: string) => {
     setSelectedOutputs((prev: Set<string>) => {
       const n = new Set(prev);
@@ -83,29 +117,30 @@ export default function App() {
     });
   };
 
-
+  // Extract keywords from the job listing using the API and update state
   const extractKeywords = async () => {
     if (!jobListing.trim()) return;
     setLoadingKeywords(true);
     try {
       const lang = detectLanguage(jobListing);
-      const kwSystemPrompt = lang === 'en'
-        ? `Extract the most important keywords and skills from a job listing. Return ONLY a JSON array of 8–14 short phrases (max 4 words each), in English. No markdown characters.`
-        : `Extrahera de viktigaste nyckelorden och kompetenserna från en jobbannons. Returnera ENDAST en JSON-array med 8–14 korta fraser (max 4 ord), på svenska. Inga markdown-tecken.`;
+      const kwSystemPrompt =
+        lang === 'en'
+          ? `Extract the most important keywords and skills from a job listing. Return ONLY a JSON array of 8–14 short phrases (max 4 words each), in English. No markdown characters.`
+          : `Extrahera de viktigaste nyckelorden och kompetenserna från en jobbannons. Returnera ENDAST en JSON-array med 8–14 korta fraser (max 4 ord), på svenska. Inga markdown-tecken.`;
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 300,
           system: kwSystemPrompt,
-          messages: [{ role: 'user', content: jobListing }]
-        })
+          messages: [{ role: 'user', content: jobListing }],
+        }),
       });
       const data = await res.json();
       const parsed = JSON.parse(
@@ -114,7 +149,7 @@ export default function App() {
           .join('')
           .trim()
           .replace(/```json|```/g, '')
-          .trim()
+          .trim(),
       );
       setKeywords(parsed);
       setSelectedKw(new Set(parsed));
@@ -124,7 +159,7 @@ export default function App() {
     }
   };
 
-
+  // Update a specific field in the CV data and trigger onChange with the new CV
   const toggleKeyword = (kw: string) =>
     setSelectedKw((prev: Set<string>) => {
       const n = new Set(prev);
@@ -132,6 +167,7 @@ export default function App() {
       return n;
     });
 
+  // Add a new keyword to the list and select it
   const addKeyword = () => {
     const kw = newKeyword.trim();
     if (!kw) return;
@@ -140,7 +176,7 @@ export default function App() {
     setNewKw('');
   };
 
-
+  // Generate the CV and other outputs based on the job listing and selected profile
   const generate = async () => {
     if (!jobListing.trim()) return;
     setLoading(true);
@@ -148,7 +184,12 @@ export default function App() {
     setResult(null);
     try {
       const lang = detectLanguage(jobListing);
-      const system = new SystemPromptBuilder(profile, selectedKeywords, selectedOutputs, lang).build();
+      const system = new SystemPromptBuilder(
+        profile,
+        selectedKeywords,
+        selectedOutputs,
+        lang,
+      ).build();
       const userPrefix = lang === 'en' ? 'Job listing:' : 'Jobbannonsen:';
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -156,16 +197,14 @@ export default function App() {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1800,
           system,
-          messages: [
-            { role: 'user', content: `${userPrefix}\n\n${jobListing}` }
-          ]
-        })
+          messages: [{ role: 'user', content: `${userPrefix}\n\n${jobListing}` }],
+        }),
       });
       const data = await res.json();
       const text = data.content
@@ -180,7 +219,7 @@ export default function App() {
     }
   };
 
-
+  // Update a specific field in the CV data and trigger onChange with the new CV
   const downloadCv = async () => {
     if (!result?.cv || !docxReady) return;
     setLoadingDownload(true);
@@ -201,14 +240,14 @@ export default function App() {
     }
   };
 
-
+  // Utility function to copy text to clipboard and show "Copied" feedback
   const copy = async (key: string, text: string) => {
     await navigator.clipboard.writeText(text);
     setCopied((p: { [key: string]: boolean }) => ({ ...p, [key]: true }));
     setTimeout(() => setCopied((p: { [key: string]: boolean }) => ({ ...p, [key]: false })), 2000);
   };
 
-
+  // Reset all inputs and outputs to start a new generation
   const reset = () => {
     setJobListing('');
     setResult(null);
@@ -217,32 +256,31 @@ export default function App() {
     setSelectedKw(new Set());
   };
 
-
-  const textOutputKeys = ['about', 'email', 'linkedin', 'coverLetter'].filter(
-    (k) => selectedOutputs.has(k)
+  const textOutputKeys = ['about', 'email', 'linkedin', 'coverLetter'].filter((k) =>
+    selectedOutputs.has(k),
   );
 
   return (
     <>
-      <div className='app'>
-        <div className='header'>
-          <div className='hi'>LS</div>
+      <div className="app">
+        <div className="header">
+          <div className="hi">LS</div>
           <div>
-            <div className='hn'>Ansökningsagent</div>
-            <div className='hs'>{USER.name}</div>
+            <div className="hn">Ansökningsagent</div>
+            <div className="hs">{USER.name}</div>
           </div>
           <input
-            className='api-key-input'
-            type='password'
+            className="api-key-input"
+            type="password"
             value={apiKey}
-            onChange={e => saveApiKey(e.target.value)}
-            placeholder='Anthropic API-nyckel...'
+            onChange={(e) => saveApiKey(e.target.value)}
+            placeholder="Anthropic API-nyckel..."
           />
         </div>
-        <div className='main'>
-          <div className='card'>
-            <div className='lbl'>Profil</div>
-            <div className='profiles'>
+        <div className="main">
+          <div className="card">
+            <div className="lbl">Profil</div>
+            <div className="profiles">
               {Object.entries(PROFILES).map(([key, p]) => (
                 <button
                   key={key}
@@ -256,40 +294,40 @@ export default function App() {
             </div>
           </div>
 
-          <div className='card'>
-            <div className='lbl'>Jobbannons</div>
+          <div className="card">
+            <div className="lbl">Jobbannons</div>
             <textarea
               value={jobListing}
               onChange={(e) => setJobListing(e.target.value)}
-              placeholder='Klistra in hela jobbannonsen här...'
+              placeholder="Klistra in hela jobbannonsen här..."
             />
 
             {jobListing.trim() && (
               <>
-                <div className='divider' />
+                <div className="divider" />
                 <div>
-                  <div className='kw-top'>
-                    <div className='lbl' style={{ margin: 0 }}>
+                  <div className="kw-top">
+                    <div className="lbl" style={{ margin: 0 }}>
                       Nyckelord
                     </div>
                     <div
                       style={{
                         display: 'flex',
                         gap: '0.5rem',
-                        alignItems: 'center'
+                        alignItems: 'center',
                       }}
                     >
                       {keywords.length > 0 && (
-                        <span className='kw-count'>
+                        <span className="kw-count">
                           <b>{selectedKeywords.size}</b> av {keywords.length}
                         </span>
                       )}
                       <button
-                        className='btn btn-g'
+                        className="btn btn-g"
                         onClick={extractKeywords}
                         disabled={loadingKeywords || !apiKey}
                       >
-                        {loadingKeywords ? <div className='spinner-sm' /> : null}
+                        {loadingKeywords ? <div className="spinner-sm" /> : null}
                         {loadingKeywords
                           ? 'Hämtar...'
                           : keywords.length > 0
@@ -299,34 +337,28 @@ export default function App() {
                     </div>
                   </div>
                   {keywords.length > 0 && (
-                    <div className='tags'>
+                    <div className="tags">
                       {keywords.map((kw) => (
                         <button
                           key={kw}
                           className={`tag${selectedKeywords.has(kw) ? ' on' : ''}`}
                           onClick={() => toggleKeyword(kw)}
                         >
-                          {selectedKeywords.has(kw) && (
-                            <span style={{ fontSize: 10 }}>✓ </span>
-                          )}
+                          {selectedKeywords.has(kw) && <span style={{ fontSize: 10 }}>✓ </span>}
                           {kw}
                         </button>
                       ))}
                     </div>
                   )}
-                  <div className='add-row'>
+                  <div className="add-row">
                     <input
-                      className='add-input'
+                      className="add-input"
                       value={newKeyword}
                       onChange={(e) => setNewKw(e.target.value)}
-                      placeholder='Lägg till eget nyckelord...'
+                      placeholder="Lägg till eget nyckelord..."
                       onKeyDown={(e) => e.key === 'Enter' && addKeyword()}
                     />
-                    <button
-                      className='add-btn'
-                      onClick={addKeyword}
-                      disabled={!newKeyword.trim()}
-                    >
+                    <button className="add-btn" onClick={addKeyword} disabled={!newKeyword.trim()}>
                       Lägg till
                     </button>
                   </div>
@@ -334,9 +366,9 @@ export default function App() {
               </>
             )}
 
-            <div className='divider' />
-            <div className='lbl'>Vad ska genereras</div>
-            <div className='outputs-grid'>
+            <div className="divider" />
+            <div className="lbl">Vad ska genereras</div>
+            <div className="outputs-grid">
               {Object.entries(OUTPUT_META).map(([key, meta]) => (
                 <button
                   key={key}
@@ -349,78 +381,66 @@ export default function App() {
               ))}
             </div>
 
-            <div className='btn-row'>
+            <div className="btn-row">
               <button
-                className='btn btn-p'
+                className="btn btn-p"
                 onClick={generate}
                 disabled={loading || !jobListing.trim()}
               >
-                {loading ? <div className='spinner' /> : null}
+                {loading ? <div className="spinner" /> : null}
                 {loading ? 'Genererar...' : 'Generera ↗'}
               </button>
               {(jobListing || result) && !loading && (
-                <button className='btn btn-g' onClick={reset}>
+                <button className="btn btn-g" onClick={reset}>
                   Rensa
                 </button>
               )}
             </div>
           </div>
 
-          {error && <div className='err'>{error}</div>}
+          {error && <div className="err">{error}</div>}
 
           {result && (
-            <div className='card results'>
+            <div className="card results">
               {selectedOutputs.has('cv') && result.cv && (
-                <div className='cv-bar'>
+                <div className="cv-bar">
                   <div>
-                    <div className='cv-info'>
-                      CV – {result.cv.jobTitle || USER.name}
-                    </div>
-                    <div className='cv-sub'>
-                      Anpassat för denna tjänst · .docx
-                    </div>
+                    <div className="cv-info">CV – {result.cv.jobTitle || USER.name}</div>
+                    <div className="cv-sub">Anpassat för denna tjänst · .docx</div>
                   </div>
                   <button
-                    className='btn-dl'
+                    className="btn-dl"
                     onClick={downloadCv}
                     disabled={loadingDownload || !docxReady}
                   >
-                    {loadingDownload ? <div className='spinner-dl' /> : '⬇'}
+                    {loadingDownload ? <div className="spinner-dl" /> : '⬇'}
                     {loadingDownload ? 'Skapar...' : 'Ladda ner'}
                   </button>
                 </div>
               )}
               {textOutputKeys.map((key) =>
                 result[key] ? (
-                  <div className='rb' key={key}>
-                    <div className='rh'>
-                      <span className='rt'>{OUTPUT_META[key as keyof typeof OUTPUT_META].label}</span>
-                      <button
-                        className='btn-c'
-                        onClick={() => copy(key, result[key])}
-                      >
-                        {copied[key] ? (
-                          <span className='cl'>Kopierat ✓</span>
-                        ) : (
-                          'Kopiera'
-                        )}
+                  <div className="rb" key={key}>
+                    <div className="rh">
+                      <span className="rt">
+                        {OUTPUT_META[key as keyof typeof OUTPUT_META].label}
+                      </span>
+                      <button className="btn-c" onClick={() => copy(key, result[key])}>
+                        {copied[key] ? <span className="cl">Kopierat ✓</span> : 'Kopiera'}
                       </button>
                     </div>
-                    <div className='rv'>{result[key]}</div>
+                    <div className="rv">{result[key]}</div>
                   </div>
-                ) : null
+                ) : null,
               )}
             </div>
           )}
 
           {!result && !loading && !error && (
-            <div className='empty'>
-              Välj profil, klistra in annons och tryck på generera
-            </div>
+            <div className="empty">Välj profil, klistra in annons och tryck på generera</div>
           )}
         </div>
       </div>
     </>
-  )
+  );
 }
- 

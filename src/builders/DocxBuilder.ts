@@ -140,7 +140,7 @@ export class DocxBuilder {
     ]
 
     for (const exp of this.cvData.experiences || []) {
-      const base = ALL_EXPERIENCES[exp.key]
+      const base = ALL_EXPERIENCES[exp.key as keyof typeof ALL_EXPERIENCES]
       if (!base) continue
       children.push(
         jobTitle(
