@@ -50,10 +50,10 @@ src/
 
 Personal data lives in `.local.ts` files that are gitignored. Vite is configured to resolve them automatically — if a `.local.ts` exists, it takes precedence over the corresponding `.ts` template file.
 
-| Public template | Your private version |
-|---|---|
-| `USER.ts` | `USER.local.ts` |
-| `PROFILES.ts` | `PROFILES.local.ts` |
+| Public template      | Your private version       |
+| -------------------- | -------------------------- |
+| `USER.ts`            | `USER.local.ts`            |
+| `PROFILES.ts`        | `PROFILES.local.ts`        |
 | `ALL_EXPERIENCES.ts` | `ALL_EXPERIENCES.local.ts` |
 
 This keeps your personal information out of version control while making the codebase shareable.
@@ -104,6 +104,8 @@ The app will be available at `http://localhost:5173`.
 ## Customization
 
 ### Adding a new profile
+
+With 'profile', we mean a set of instructions that tells the AI which experiences to include in the CV and what tone to use for the cover letter and other outputs. You can have different profiles for different types of jobs (e.g. "tech roles", "service industry", "volunteer positions") that highlight different parts of your experience and use different language styles.
 
 In `PROFILES.local.ts`, add an entry to the `PROFILES` object:
 
