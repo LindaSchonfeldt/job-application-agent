@@ -12,3 +12,6 @@ src/data/PROFILES.local.ts
 src/data/ALL_EXPERIENCES.local.ts
 src/data/OUTPUT_META.local.ts
 
+# Claude
+CLAUDE.md
+

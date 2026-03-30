@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './styles/app.css';
 import { PROFILES } from './data/PROFILES';
 import { OUTPUT_META } from './data/OUTPUT_META';
 import { USER } from './data/USER';
@@ -29,6 +30,14 @@ interface Result {
   [key: string]: any;
 }
 
+
+export default function App() {
+  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('claude_api_key') ?? '');
+
+  const saveApiKey = (key: string) => {
+    setApiKey(key);
+    localStorage.setItem('claude_api_key', key);
+  };
 
   const [profile, setProfile] = useState<string>('service');
   const [jobListing, setJobListing] = useState<string>('');
@@ -85,7 +94,12 @@ interface Result {
         : `Extrahera de viktigaste nyckelorden och kompetenserna från en jobbannons. Returnera ENDAST en JSON-array med 8–14 korta fraser (max 4 ord), på svenska. Inga markdown-tecken.`;
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 300,
@@ -138,7 +152,12 @@ interface Result {
       const userPrefix = lang === 'en' ? 'Job listing:' : 'Jobbannonsen:';
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1800,
@@ -205,7 +224,6 @@ interface Result {
 
   return (
     <>
-      <style>{S}</style>
       <div className='app'>
         <div className='header'>
           <div className='hi'>LS</div>
@@ -213,6 +231,13 @@ interface Result {
             <div className='hn'>Ansökningsagent</div>
             <div className='hs'>{USER.name}</div>
           </div>
+          <input
+            className='api-key-input'
+            type='password'
+            value={apiKey}
+            onChange={e => saveApiKey(e.target.value)}
+            placeholder='Anthropic API-nyckel...'
+          />
         </div>
         <div className='main'>
           <div className='card'>
@@ -262,7 +287,7 @@ interface Result {
                       <button
                         className='btn btn-g'
                         onClick={extractKeywords}
-                        disabled={loadingKeywords}
+                        disabled={loadingKeywords || !apiKey}
                       >
                         {loadingKeywords ? <div className='spinner-sm' /> : null}
                         {loadingKeywords
@@ -369,7 +394,7 @@ interface Result {
                 result[key] ? (
                   <div className='rb' key={key}>
                     <div className='rh'>
-                      <span className='rt'>{OUTPUT_META[key].label}</span>
+                      <span className='rt'>{OUTPUT_META[key as keyof typeof OUTPUT_META].label}</span>
                       <button
                         className='btn-c'
                         onClick={() => copy(key, result[key])}
