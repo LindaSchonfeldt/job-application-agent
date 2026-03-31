@@ -1,53 +1,94 @@
-.cvp { display: flex; flex-direction: column; }
-.cvp-head { padding: 1rem 1.25rem 0.875rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
-.cvp-name { font-size: 20px; font-weight: 600; color: #1A1A2E; letter-spacing: -0.01em; }
-.cvp-contact { margin-top: 4px; font-size: 12px; color: var(--color-text-tertiary); }
+@layer components {
+  .cvp {
+    @apply flex flex-col;
+  }
 
-/* Fält som ser ut som vanlig text men är klickbara för att redigera */
-.cvp-title-input,
-.cvp-exp-title,
-.cvp-bullet-input {
-  font-family: var(--font-sans);
-  background: transparent;
-  border: none;
-  border-bottom: 0.5px solid transparent;
-  outline: none;
-  padding: 2px 0;
-  transition: border-color 0.15s;
-  width: 100%;
+  /* Rubriksektionen med namn och kontakt */
+  .cvp-head {
+    @apply px-5 pt-4 pb-[0.875rem] border-b border-border;
+  }
+  .cvp-name {
+    @apply text-[20px] font-semibold text-accent tracking-[-0.01em];
+  }
+  .cvp-contact {
+    @apply mt-1 text-xs text-text-muted;
+  }
+
+  /* Fält som ser ut som vanlig text men är klickbara för att redigera */
+  .cvp-title-input,
+  .cvp-exp-title,
+  .cvp-bullet-input {
+    @apply font-sans bg-transparent border-0 border-b border-b-transparent
+           outline-none py-[2px] transition-colors duration-150 w-full;
+  }
+  .cvp-title-input {
+    @apply mt-1 text-[13px] text-text-secondary;
+  }
+  .cvp-exp-title {
+    @apply text-[13px] font-medium text-text-primary;
+  }
+  .cvp-bullet-input {
+    @apply flex-1 text-[13px] text-text-primary;
+  }
+  .cvp-title-input:hover,
+  .cvp-title-input:focus,
+  .cvp-exp-title:hover,
+  .cvp-exp-title:focus,
+  .cvp-bullet-input:hover,
+  .cvp-bullet-input:focus {
+    @apply border-b-border-focus;
+  }
+
+  /* Innehållssektioner */
+  .cvp-section {
+    @apply px-5 py-[0.875rem] border-b border-border flex flex-col gap-2 last:border-b-0;
+  }
+  .cvp-sh {
+    @apply text-[10px] font-semibold tracking-[0.09em] uppercase text-accent;
+  }
+
+  /* Textarea-fält (om mig, kunskaper) */
+  .cvp-ta {
+    @apply w-full font-sans text-[13px] leading-relaxed text-text-primary
+           bg-bg-secondary border border-border rounded-[var(--radius-md)]
+           px-3 py-2 resize-y outline-none transition-colors duration-150;
+  }
+  .cvp-ta:focus {
+    @apply border-border-focus;
+  }
+
+  /* Erfarenhetsblock */
+  .cvp-exp {
+    @apply flex flex-col gap-1 py-2 border-b border-border last:border-b-0 last:pb-0;
+  }
+  .cvp-exp-meta {
+    @apply flex flex-col gap-[2px] mb-1;
+  }
+  .cvp-exp-sub {
+    @apply text-xs text-text-muted;
+  }
+  .cvp-bullet {
+    @apply flex items-center gap-2;
+  }
+  .cvp-dot {
+    @apply text-sm text-text-muted shrink-0 -mt-px;
+  }
+
+  /* Mind-checkbox */
+  .cvp-mind {
+    @apply flex items-center gap-2 text-[13px] text-text-secondary cursor-pointer;
+  }
+  .cvp-mind input {
+    @apply cursor-pointer accent-accent;
+  }
+
+  /* Utbildning */
+  .cvp-edu {
+    @apply text-[13px] text-text-secondary py-[2px];
+  }
+
+  /* Footer med nedladdningsknapp */
+  .cvp-footer {
+    @apply px-5 pt-[0.875rem];
+  }
 }
-.cvp-title-input { margin-top: 4px; font-size: 13px; color: var(--color-text-secondary); }
-.cvp-exp-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
-.cvp-bullet-input { flex: 1; font-size: 13px; color: var(--color-text-primary); }
-
-.cvp-title-input:hover, .cvp-title-input:focus,
-.cvp-exp-title:hover, .cvp-exp-title:focus,
-.cvp-bullet-input:hover, .cvp-bullet-input:focus {
-  border-bottom-color: var(--color-border-primary);
-}
-
-.cvp-section { padding: 0.875rem 1.25rem; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; flex-direction: column; gap: 0.5rem; }
-.cvp-section:last-child { border-bottom: none; }
-.cvp-sh { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: #1A1A2E; }
-
-/* Textarea-fält (om mig, kunskaper) */
-.cvp-ta { width: 100%; font-family: var(--font-sans); font-size: 13px; line-height: 1.6; color: var(--color-text-primary); background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 0.5rem 0.75rem; resize: vertical; outline: none; transition: border-color 0.15s; }
-.cvp-ta:focus { border-color: var(--color-border-primary); }
-
-/* Erfarenhetsblock */
-.cvp-exp { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.5rem 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
-.cvp-exp:last-child { border-bottom: none; padding-bottom: 0; }
-.cvp-exp-meta { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
-.cvp-exp-sub { font-size: 12px; color: var(--color-text-tertiary); }
-.cvp-bullet { display: flex; align-items: center; gap: 0.5rem; }
-.cvp-dot { font-size: 14px; color: var(--color-text-tertiary); flex-shrink: 0; margin-top: -1px; }
-
-/* Mind-checkbox */
-.cvp-mind { display: flex; align-items: center; gap: 0.5rem; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; }
-.cvp-mind input { cursor: pointer; accent-color: #1A1A2E; }
-
-/* Utbildning */
-.cvp-edu { font-size: 13px; color: var(--color-text-secondary); padding: 2px 0; }
-
-/* Footer med nedladdningsknapp */
-.cvp-footer { padding: 0.875rem 1.25rem 0; }

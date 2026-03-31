@@ -1,0 +1,24 @@
+/// <reference types="node" />
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { resolve } from 'path';
+import { existsSync } from 'fs';
+const dataDir = resolve(__dirname, 'src/data');
+function localOrPublic(name) {
+    const local = resolve(dataDir, `${name}.local.ts`);
+    return existsSync(local)
+        ? resolve(dataDir, `${name}.local.ts`)
+        : resolve(dataDir, `${name}.ts`);
+}
+const DATA_FILES = ['ALL_EXPERIENCES', 'PROFILES', 'OUTPUT_META', 'USER', 'MIND'];
+export default defineConfig({
+    plugins: [react(), tailwindcss()],
+    resolve: {
+        alias: DATA_FILES.map(name => ({
+            find: new RegExp(`.*\\/data\\/${name}(\\.ts)?$`),
+            replacement: localOrPublic(name),
+        })),
+    },
+});
+//# sourceMappingURL=vite.config.js.map

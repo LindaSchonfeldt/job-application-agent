@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { DocxBuilder } from './builders/DocxBuilder';
 import { SystemPromptBuilder } from './builders/SystemPromptBuilder';
@@ -6,7 +6,6 @@ import { OUTPUT_META } from './data/OUTPUT_META';
 import { PROFILES } from './data/PROFILES';
 import { USER } from './data/USER';
 
-import './styles/app.css';
 
 function detectLanguage(text: string): 'sv' | 'en' {
   const words = text.toLowerCase().match(/\b\w+\b/g) ?? [];

@@ -1,12 +1,6 @@
-.cle-ta {
-  width: 100%;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.8;
-  color: var(--color-text-primary);
-  background: transparent;
-  border: none;
-  resize: vertical;
-  outline: none;
-  padding: 0;
+@layer components {
+  .cle-ta {
+    @apply w-full font-sans text-[13px] leading-[1.8] text-text-primary
+           bg-transparent border-0 resize-y outline-none p-0;
+  }
 }
