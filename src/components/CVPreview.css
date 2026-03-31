@@ -3,7 +3,7 @@
     @apply flex flex-col;
   }
 
-  /* Rubriksektionen med namn och kontakt */
+  /* Header section with name and contact info */
   .cvp-head {
     @apply px-5 pt-4 pb-[0.875rem] border-b border-border;
   }
@@ -14,7 +14,7 @@
     @apply mt-1 text-xs text-text-muted;
   }
 
-  /* Fält som ser ut som vanlig text men är klickbara för att redigera */
+  /* Fields that look like plain text but are clickable to edit */
   .cvp-title-input,
   .cvp-exp-title,
   .cvp-bullet-input {
@@ -39,7 +39,7 @@
     @apply border-b-border-focus;
   }
 
-  /* Innehållssektioner */
+  /* Content sections */
   .cvp-section {
     @apply px-5 py-[0.875rem] border-b border-border flex flex-col gap-2 last:border-b-0;
   }
@@ -47,22 +47,22 @@
     @apply text-[10px] font-semibold tracking-[0.09em] uppercase text-accent;
   }
 
-  /* Textarea-fält (om mig, kunskaper) */
+  /* Textarea fields (about, skills) */
   .cvp-ta {
     @apply w-full font-sans text-[13px] leading-relaxed text-text-primary
-           bg-bg-secondary border border-border rounded-[var(--radius-md)]
+           bg-bg-secondary border border-border rounded-md
            px-3 py-2 resize-y outline-none transition-colors duration-150;
   }
   .cvp-ta:focus {
     @apply border-border-focus;
   }
 
-  /* Erfarenhetsblock */
+  /* Experience blocks */
   .cvp-exp {
     @apply flex flex-col gap-1 py-2 border-b border-border last:border-b-0 last:pb-0;
   }
   .cvp-exp-meta {
-    @apply flex flex-col gap-[2px] mb-1;
+    @apply flex flex-col gap-0.5 mb-1;
   }
   .cvp-exp-sub {
     @apply text-xs text-text-muted;
@@ -74,7 +74,7 @@
     @apply text-sm text-text-muted shrink-0 -mt-px;
   }
 
-  /* Mind-checkbox */
+  /* Mind checkbox */
   .cvp-mind {
     @apply flex items-center gap-2 text-[13px] text-text-secondary cursor-pointer;
   }
@@ -82,12 +82,12 @@
     @apply cursor-pointer accent-accent;
   }
 
-  /* Utbildning */
+  /* Education */
   .cvp-edu {
     @apply text-[13px] text-text-secondary py-[2px];
   }
 
-  /* Footer med nedladdningsknapp */
+  /* Footer with download button */
   .cvp-footer {
     @apply px-5 pt-[0.875rem];
   }
