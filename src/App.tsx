@@ -39,7 +39,7 @@ export default function App() {
   );
 
   useEffect(() => {
-    if ((window as any).docx) {
+    if ((window as Window & { docx?: unknown }).docx) {
       setDocxReady(true);
       return;
     }
@@ -61,7 +61,11 @@ export default function App() {
   const toggleOutput = (key: string) => {
     setSelectedOutputs((prev: Set<string>) => {
       const n = new Set(prev);
-      n.has(key) ? n.delete(key) : n.add(key);
+      if (n.has(key)) {
+        n.delete(key);
+      } else {
+        n.add(key);
+      }
       return n;
     });
   };
@@ -94,7 +98,7 @@ export default function App() {
       const data = await res.json();
       const parsed = JSON.parse(
         data.content
-          ?.map((b: any) => b.text || '')
+          ?.map((b: { text?: string }) => b.text || '')
           .join('')
           .trim()
           .replace(/```json|```/g, '')
@@ -103,6 +107,7 @@ export default function App() {
       setKeywords(parsed);
       setSelectedKw(new Set(parsed));
     } catch {
+      // Ignore keyword parse errors silently
     } finally {
       setLoadingKeywords(false);
     }
@@ -112,7 +117,11 @@ export default function App() {
   const toggleKeyword = (kw: string) =>
     setSelectedKw((prev: Set<string>) => {
       const n = new Set(prev);
-      n.has(kw) ? n.delete(kw) : n.add(kw);
+      if (n.has(kw)) {
+        n.delete(kw);
+      } else {
+        n.add(kw);
+      }
       return n;
     });
 
@@ -157,7 +166,7 @@ export default function App() {
       });
       const data = await res.json();
       const text = data.content
-        ?.map((b: any) => b.text || '')
+        ?.map((b: { text?: string }) => b.text || '')
         .join('')
         .trim();
       setResult(JSON.parse(text.replace(/```json|```/g, '').trim()));
@@ -182,7 +191,7 @@ export default function App() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (e) {
+    } catch {
       alert('Kunde inte generera CV-filen. Försök igen.');
     } finally {
       setLoadingDownload(false);

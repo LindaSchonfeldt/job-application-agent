@@ -6,6 +6,12 @@ node_modules/
 build/
 dist/
 
+# TypeScript compiled output (should not be in src/)
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
+
 # Personal/local data
 src/data/USER.local.ts
 src/data/PROFILES.local.ts
