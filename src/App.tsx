@@ -1,72 +1,17 @@
 import { useEffect, useState } from 'react';
 
 import { DocxBuilder } from './builders/DocxBuilder';
+import { SystemPromptBuilder } from './builders/SystemPromptBuilder';
 import CvBar from './components/CvBar';
 import Header from './components/Header';
 import KeywordsSection from './components/KeywordsSection';
 import OutputSelector from './components/OutputSelector';
 import ResultCard from './components/ResultCard';
-import { SystemPromptBuilder } from './builders/SystemPromptBuilder';
 import { OUTPUT_META } from './data/OUTPUT_META';
 import { PROFILES } from './data/PROFILES';
 import { USER } from './data/USER';
-
-
-function detectLanguage(text: string): 'sv' | 'en' {
-  const words = text.toLowerCase().match(/\b\w+\b/g) ?? [];
-  if (words.length === 0) return 'sv';
-  const svWords = new Set([
-    'och',
-    'att',
-    'för',
-    'med',
-    'av',
-    'en',
-    'ett',
-    'är',
-    'som',
-    'på',
-    'vi',
-    'du',
-    'det',
-    'den',
-    'sin',
-    'sig',
-    'till',
-    'om',
-    'men',
-    'har',
-    'kan',
-    'ska',
-    'eller',
-    'inte',
-    'också',
-    'vill',
-    'inom',
-    'samt',
-    'vara',
-    'våra',
-    'vårt',
-    'hos',
-  ]);
-  const svCount = words.filter((w) => svWords.has(w)).length;
-  return svCount / words.length > 0.04 ? 'sv' : 'en';
-}
-
-// Example types, adjust as needed for your actual data
-
-interface CvData {
-  jobTitle: string;
-  about: string;
-  experiences: any[];
-  includeMind: boolean;
-  skills: string;
-}
-
-interface Result {
-  cv?: CvData;
-  [key: string]: any;
-}
+import type { Result } from './types';
+import { detectLanguage } from './utils';
 
 export default function App() {
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('claude_api_key') ?? '');
@@ -267,11 +212,7 @@ export default function App() {
   return (
     <>
       <div className="app">
-        <Header
-          name={USER.name}
-          apiKey={apiKey}
-          onApiKeyChange={saveApiKey}
-        />
+        <Header name={USER.name} apiKey={apiKey} onApiKeyChange={saveApiKey} />
         <div className="main">
           <div className="card">
             <div className="lbl">Profil</div>
@@ -316,10 +257,7 @@ export default function App() {
 
             <div className="divider" />
             <div className="lbl">Vad ska genereras</div>
-            <OutputSelector
-              selectedOutputs={selectedOutputs}
-              onToggle={toggleOutput}
-            />
+            <OutputSelector selectedOutputs={selectedOutputs} onToggle={toggleOutput} />
 
             <div className="btn-row">
               <button
@@ -369,7 +307,9 @@ export default function App() {
           )}
 
           {!result && !loading && !error && (
-            <div className="text-center py-6 text-text-muted text-[13px]">Välj profil, klistra in annons och tryck på generera</div>
+            <div className="text-center py-6 text-text-muted text-[13px]">
+              Välj profil, klistra in annons och tryck på generera
+            </div>
           )}
         </div>
       </div>
