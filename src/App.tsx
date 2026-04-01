@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 
 import { DocxBuilder } from './builders/DocxBuilder';
+import CvBar from './components/CvBar';
+import Header from './components/Header';
+import KeywordsSection from './components/KeywordsSection';
+import OutputSelector from './components/OutputSelector';
+import ResultCard from './components/ResultCard';
 import { SystemPromptBuilder } from './builders/SystemPromptBuilder';
 import { OUTPUT_META } from './data/OUTPUT_META';
 import { PROFILES } from './data/PROFILES';
@@ -262,20 +267,11 @@ export default function App() {
   return (
     <>
       <div className="app">
-        <div className="header">
-          <div className="hi">LS</div>
-          <div>
-            <div className="hn">Ansökningsagent</div>
-            <div className="hs">{USER.name}</div>
-          </div>
-          <input
-            className="api-key-input"
-            type="password"
-            value={apiKey}
-            onChange={(e) => saveApiKey(e.target.value)}
-            placeholder="Anthropic API-nyckel..."
-          />
-        </div>
+        <Header
+          name={USER.name}
+          apiKey={apiKey}
+          onApiKeyChange={saveApiKey}
+        />
         <div className="main">
           <div className="card">
             <div className="lbl">Profil</div>
@@ -304,81 +300,26 @@ export default function App() {
             {jobListing.trim() && (
               <>
                 <div className="divider" />
-                <div>
-                  <div className="kw-top">
-                    <div className="lbl" style={{ margin: 0 }}>
-                      Nyckelord
-                    </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '0.5rem',
-                        alignItems: 'center',
-                      }}
-                    >
-                      {keywords.length > 0 && (
-                        <span className="kw-count">
-                          <b>{selectedKeywords.size}</b> av {keywords.length}
-                        </span>
-                      )}
-                      <button
-                        className="btn btn-g"
-                        onClick={extractKeywords}
-                        disabled={loadingKeywords || !apiKey}
-                      >
-                        {loadingKeywords ? <div className="spinner-sm" /> : null}
-                        {loadingKeywords
-                          ? 'Hämtar...'
-                          : keywords.length > 0
-                            ? 'Uppdatera'
-                            : 'Hämta nyckelord'}
-                      </button>
-                    </div>
-                  </div>
-                  {keywords.length > 0 && (
-                    <div className="tags">
-                      {keywords.map((kw) => (
-                        <button
-                          key={kw}
-                          className={`tag${selectedKeywords.has(kw) ? ' on' : ''}`}
-                          onClick={() => toggleKeyword(kw)}
-                        >
-                          {selectedKeywords.has(kw) && <span style={{ fontSize: 10 }}>✓ </span>}
-                          {kw}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div className="add-row">
-                    <input
-                      className="add-input"
-                      value={newKeyword}
-                      onChange={(e) => setNewKw(e.target.value)}
-                      placeholder="Lägg till eget nyckelord..."
-                      onKeyDown={(e) => e.key === 'Enter' && addKeyword()}
-                    />
-                    <button className="add-btn" onClick={addKeyword} disabled={!newKeyword.trim()}>
-                      Lägg till
-                    </button>
-                  </div>
-                </div>
+                <KeywordsSection
+                  keywords={keywords}
+                  selectedKeywords={selectedKeywords}
+                  newKeyword={newKeyword}
+                  loading={loadingKeywords}
+                  hasApiKey={!!apiKey}
+                  onExtract={extractKeywords}
+                  onToggle={toggleKeyword}
+                  onNewKeywordChange={setNewKw}
+                  onAdd={addKeyword}
+                />
               </>
             )}
 
             <div className="divider" />
             <div className="lbl">Vad ska genereras</div>
-            <div className="outputs-grid">
-              {Object.entries(OUTPUT_META).map(([key, meta]) => (
-                <button
-                  key={key}
-                  className={`out-toggle${selectedOutputs.has(key) ? ' on' : ''}`}
-                  onClick={() => toggleOutput(key)}
-                >
-                  {selectedOutputs.has(key) ? '✓ ' : '+ '}
-                  {meta.label}
-                </button>
-              ))}
-            </div>
+            <OutputSelector
+              selectedOutputs={selectedOutputs}
+              onToggle={toggleOutput}
+            />
 
             <div className="btn-row">
               <button
@@ -397,46 +338,38 @@ export default function App() {
             </div>
           </div>
 
-          {error && <div className="err">{error}</div>}
+          {error && (
+            <div className="bg-bg-danger border border-border-danger rounded-md px-4 py-3.5 text-[13px] text-text-danger">
+              {error}
+            </div>
+          )}
 
           {result && (
             <div className="card results">
               {selectedOutputs.has('cv') && result.cv && (
-                <div className="cv-bar">
-                  <div>
-                    <div className="cv-info">CV – {result.cv.jobTitle || USER.name}</div>
-                    <div className="cv-sub">Anpassat för denna tjänst · .docx</div>
-                  </div>
-                  <button
-                    className="btn-dl"
-                    onClick={downloadCv}
-                    disabled={loadingDownload || !docxReady}
-                  >
-                    {loadingDownload ? <div className="spinner-dl" /> : '⬇'}
-                    {loadingDownload ? 'Skapar...' : 'Ladda ner'}
-                  </button>
-                </div>
+                <CvBar
+                  jobTitle={result.cv.jobTitle || USER.name}
+                  loading={loadingDownload}
+                  disabled={loadingDownload || !docxReady}
+                  onDownload={downloadCv}
+                />
               )}
               {textOutputKeys.map((key) =>
                 result[key] ? (
-                  <div className="rb" key={key}>
-                    <div className="rh">
-                      <span className="rt">
-                        {OUTPUT_META[key as keyof typeof OUTPUT_META].label}
-                      </span>
-                      <button className="btn-c" onClick={() => copy(key, result[key])}>
-                        {copied[key] ? <span className="cl">Kopierat ✓</span> : 'Kopiera'}
-                      </button>
-                    </div>
-                    <div className="rv">{result[key]}</div>
-                  </div>
+                  <ResultCard
+                    key={key}
+                    label={OUTPUT_META[key as keyof typeof OUTPUT_META].label}
+                    text={result[key]}
+                    copied={copied[key] ?? false}
+                    onCopy={() => copy(key, result[key])}
+                  />
                 ) : null,
               )}
             </div>
           )}
 
           {!result && !loading && !error && (
-            <div className="empty">Välj profil, klistra in annons och tryck på generera</div>
+            <div className="text-center py-6 text-text-muted text-[13px]">Välj profil, klistra in annons och tryck på generera</div>
           )}
         </div>
       </div>

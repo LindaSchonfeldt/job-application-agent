@@ -1,31 +1,31 @@
 @theme {
-  /* Typsnitt */
+  /* Font */
   --font-sans: 'Inter', system-ui, sans-serif;
 
-  /* Radier */
+  /* Radii */
   --radius-md: 8px;
   --radius-lg: 12px;
 
-  /* Bakgrundsfärger */
+  /* Background colors */
   --color-bg-primary: #ffffff;
   --color-bg-secondary: #f7f7f8;
   --color-bg-page: #f0f0f2;
   --color-bg-danger: #fff1f1;
 
-  /* Textfärger */
+  /* Text colors */
   --color-text-primary: #111827;
   --color-text-secondary: #4b5563;
   --color-text-muted: #9ca3af;
   --color-text-success: #16a34a;
   --color-text-danger: #dc2626;
 
-  /* Kantlinjer */
+  /* Borders */
   --color-border: #e5e7eb;
   --color-border-strong: #d1d5db;
   --color-border-focus: #1a1a2e;
   --color-border-danger: #fca5a5;
 
-  /* Accentfärg */
+  /* Accent color */
   --color-accent: #1a1a2e;
   --color-accent-hover: #2a2a4e;
 }
