@@ -21,6 +21,12 @@
   .profiles {
     @apply grid grid-cols-2 gap-2;
   }
+  .profile-item {
+    @apply flex items-center gap-1;
+  }
+  .profile-item .pb {
+    @apply flex-1;
+  }
   .pb {
     @apply flex items-center gap-2.5 px-4 py-3 rounded-md
            border border-border bg-bg-secondary cursor-pointer font-sans text-[13px]
@@ -31,6 +37,16 @@
   }
   .pb.active {
     @apply border-accent bg-accent text-white;
+  }
+  .pb-action {
+    @apply flex items-center justify-center w-7 h-7 rounded border border-border
+           bg-bg-secondary text-text-muted text-sm cursor-pointer transition-all duration-150;
+  }
+  .pb-action:hover {
+    @apply border-border-focus text-text-primary;
+  }
+  .pb-add {
+    @apply col-span-2 justify-center text-text-muted border-dashed;
   }
 
   /* Textarea */

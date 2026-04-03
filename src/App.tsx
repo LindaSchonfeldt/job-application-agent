@@ -6,14 +6,18 @@ import CvBar from './components/CvBar';
 import Header from './components/Header';
 import KeywordsSection from './components/KeywordsSection';
 import OutputSelector from './components/OutputSelector';
+import ProfileForm from './components/ProfileForm';
 import ResultCard from './components/ResultCard';
 import { OUTPUT_META } from './data/OUTPUT_META';
-import { PROFILES } from './data/PROFILES';
 import { USER } from './data/USER';
+import { useProfileForm } from './hooks/useProfileForm';
+import { useProfiles } from './hooks/useProfiles';
 import type { Result } from './types';
 import { detectLanguage } from './utils';
 
 export default function App() {
+  const { profiles, addProfile, updateProfile, deleteProfile } = useProfiles();
+
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('claude_api_key') ?? '');
 
   // Save the API key to state and localStorage for persistence
@@ -22,7 +26,8 @@ export default function App() {
     localStorage.setItem('claude_api_key', key);
   };
 
-  const [profile, setProfile] = useState<string>('service');
+  // Start with the first saved profile, whatever it is
+  const [profile, setProfile] = useState<string>(() => Object.keys(profiles)[0] ?? '');
   const [jobListing, setJobListing] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingKeywords, setLoadingKeywords] = useState<boolean>(false);
@@ -35,7 +40,7 @@ export default function App() {
   const [newKeyword, setNewKw] = useState<string>('');
   const [docxReady, setDocxReady] = useState<boolean>(false);
   const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(
-    new Set(PROFILES['service']?.defaultOutputs ?? []),
+    () => new Set(profiles[Object.keys(profiles)[0]]?.defaultOutputs ?? []),
   );
 
   useEffect(() => {
@@ -52,9 +57,23 @@ export default function App() {
   // Switch to a different profile and reset related state
   const switchProfile = (key: string) => {
     setProfile(key);
-    setSelectedOutputs(new Set(PROFILES[key]?.defaultOutputs ?? []));
+    setSelectedOutputs(new Set(profiles[key]?.defaultOutputs ?? []));
     setResult(null);
     setError(null);
+  };
+
+  const { formOpen, editingKey, openAddForm, openEditForm, handleFormSave, handleFormCancel } =
+    useProfileForm({ addProfile, updateProfile, onNewProfile: switchProfile });
+
+  const handleDelete = (key: string) => {
+    deleteProfile(key);
+    // If the deleted profile was active, switch to the first remaining one
+    if (profile === key) {
+      const remaining = Object.keys(profiles).filter((k) => k !== key);
+      const next = remaining[0] ?? '';
+      setProfile(next);
+      setSelectedOutputs(new Set(profiles[next]?.defaultOutputs ?? []));
+    }
   };
 
   // Toggle the inclusion of a specific output in the generated results
@@ -225,18 +244,36 @@ export default function App() {
         <div className="main">
           <div className="card">
             <div className="lbl">Profil</div>
-            <div className="profiles">
-              {Object.entries(PROFILES).map(([key, p]) => (
-                <button
-                  key={key}
-                  className={`pb${profile === key ? ' active' : ''}`}
-                  onClick={() => switchProfile(key)}
-                >
-                  <span style={{ fontSize: 15 }}>{p.emoji}</span>
-                  {p.label}
+            {formOpen ? (
+              <ProfileForm
+                initial={editingKey ? profiles[editingKey] : undefined}
+                onSave={handleFormSave}
+                onCancel={handleFormCancel}
+              />
+            ) : (
+              <div className="profiles">
+                {Object.entries(profiles).map(([key, p]) => (
+                  <div key={key} className="profile-item">
+                    <button
+                      className={`pb${profile === key ? ' active' : ''}`}
+                      onClick={() => switchProfile(key)}
+                    >
+                      <span style={{ fontSize: 15 }}>{p.emoji}</span>
+                      {p.label}
+                    </button>
+                    <button className="pb-action" onClick={() => openEditForm(key)} title="Edit">
+                      ✏
+                    </button>
+                    <button className="pb-action" onClick={() => handleDelete(key)} title="Delete">
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button className="pb pb-add" onClick={openAddForm}>
+                  + Add role
                 </button>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="card">
